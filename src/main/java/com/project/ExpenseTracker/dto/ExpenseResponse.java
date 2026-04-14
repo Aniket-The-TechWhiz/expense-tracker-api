@@ -16,5 +16,4 @@ public class ExpenseResponse {
     private Category category;
     private LocalDateTime date;
     private Long userId;
-    private double monthlyReport;
 }

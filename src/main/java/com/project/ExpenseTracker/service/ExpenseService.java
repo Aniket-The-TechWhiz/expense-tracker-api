@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final UserRepository userRepository;
+
     public ExpenseResponse generateExpense(ExpenseRequest request) {
         User user=userRepository.findById(request.getUserId()).orElseThrow(()->new RuntimeException("Invalid user id"+request.getUserId()));
         Expense expense=Expense.builder()
@@ -48,8 +49,12 @@ public class ExpenseService {
 
 
     public MonthlyReportResponse getMonthlyExpense(Long userId, int month, int year) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
 
         List<Expense> expenseList = expenseRepository.findByUserId(userId);
+
 
         double total = expenseList.stream()
                 .filter(expense ->
@@ -60,5 +65,28 @@ public class ExpenseService {
                 .sum();
 
         return new MonthlyReportResponse(userId, month, year, total);
+    }
+
+    public MonthlyReportResponse getMonthlyExpenseByCategory(Long userId, String category, int month, int year) {
+                userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                if (category == null || category.isBlank()) {
+                        throw new IllegalArgumentException("Category is required");
+                }
+
+        List<Expense> expenseList = expenseRepository.findByUserId(userId);
+
+
+        double total = expenseList.stream()
+                .filter(expense ->
+                        expense.getDate().getMonthValue() == month &&
+                                expense.getDate().getYear() == year &&
+                                expense.getCategory().name().equalsIgnoreCase(category)
+                )
+                .mapToDouble(Expense::getAmount)
+                .sum();
+
+        return new MonthlyReportResponse(userId, month, year, total,category);
     }
 }

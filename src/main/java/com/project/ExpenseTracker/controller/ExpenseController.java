@@ -37,4 +37,15 @@ public class ExpenseController {
                 expenseService.getMonthlyExpense(userId, month, year)
         );
     }
+
+    @GetMapping("/monthly/byCategory")
+    public ResponseEntity<MonthlyReportResponse>getMonthlyExpenseByCategory(
+            @RequestParam Long userId,
+            @RequestParam String category,
+            @RequestParam int month,
+            @RequestParam int year
+    ){
+        return ResponseEntity.ok(expenseService.getMonthlyExpenseByCategory(userId,category,month,year));
+    }
+
 }
