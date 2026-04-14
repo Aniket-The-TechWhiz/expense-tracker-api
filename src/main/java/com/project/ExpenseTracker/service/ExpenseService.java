@@ -2,6 +2,7 @@ package com.project.ExpenseTracker.service;
 
 import com.project.ExpenseTracker.dto.ExpenseRequest;
 import com.project.ExpenseTracker.dto.ExpenseResponse;
+import com.project.ExpenseTracker.dto.MonthlyReportResponse;
 import com.project.ExpenseTracker.model.Expense;
 import com.project.ExpenseTracker.model.User;
 import com.project.ExpenseTracker.repository.ExpenseRepository;
@@ -43,5 +44,21 @@ public class ExpenseService {
         return expenseList.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+
+    public MonthlyReportResponse getMonthlyExpense(Long userId, int month, int year) {
+
+        List<Expense> expenseList = expenseRepository.findByUserId(userId);
+
+        double total = expenseList.stream()
+                .filter(expense ->
+                        expense.getDate().getMonthValue() == month &&
+                                expense.getDate().getYear() == year
+                )
+                .mapToDouble(Expense::getAmount)
+                .sum();
+
+        return new MonthlyReportResponse(userId, month, year, total);
     }
 }
