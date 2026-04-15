@@ -22,11 +22,41 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.generateExpense(expenseRequest));
     }
 
+    @PutMapping("/{expenseId}")
+    public ResponseEntity<ExpenseResponse> updateExpense(
+            @PathVariable Long expenseId,
+            @RequestHeader(value = "X-User-ID") Long userId,
+            @RequestBody ExpenseRequest expenseRequest
+    ) {
+        return ResponseEntity.ok(expenseService.updateExpense(expenseId, userId, expenseRequest));
+    }
+
+    @DeleteMapping("/{expenseId}")
+    public ResponseEntity<Void> deleteExpense(
+            @PathVariable Long expenseId,
+            @RequestHeader(value = "X-User-ID") Long userId
+    ) {
+        expenseService.deleteExpense(expenseId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping
     public ResponseEntity<List<ExpenseResponse>> getExpensesByUserId(@RequestHeader(value = "X-User-ID") Long id){
         return ResponseEntity.ok(expenseService.getExpensesByUserId(id));
     }
 
+    @GetMapping("/filter")
+    public ResponseEntity<List<ExpenseResponse>> filterExpenses(
+            @RequestParam Long userId,
+            @RequestParam String startDate,
+            @RequestParam String endDate
+    ) {
+        return ResponseEntity.ok(
+                expenseService.getExpensesByDateRange(userId, startDate, endDate)
+        );
+    }
+
+    
     @GetMapping("/monthly")
     public ResponseEntity<MonthlyReportResponse> getMonthlyExpense(
             @RequestParam Long userId,

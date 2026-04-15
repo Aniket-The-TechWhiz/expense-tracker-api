@@ -11,6 +11,9 @@ import com.project.ExpenseTracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,12 +44,68 @@ public class ExpenseService {
         return expenseResponse;
     }
 
+        public ExpenseResponse updateExpense(Long expenseId, Long userId, ExpenseRequest request) {
+                userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("Invalid user id " + userId));
+
+                Expense expense = expenseRepository.findById(expenseId)
+                                .orElseThrow(() -> new RuntimeException("Expense not found with id " + expenseId));
+
+                if (!expense.getUser().getId().equals(userId)) {
+                        throw new RuntimeException("You are not authorized to update this expense");
+                }
+
+                expense.setAmount(request.getAmount());
+                expense.setCategory(request.getCategory());
+
+                Expense updatedExpense = expenseRepository.save(expense);
+                return mapToResponse(updatedExpense);
+        }
+
+        public void deleteExpense(Long expenseId, Long userId) {
+                userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("Invalid user id " + userId));
+
+                Expense expense = expenseRepository.findById(expenseId)
+                                .orElseThrow(() -> new RuntimeException("Expense not found with id " + expenseId));
+
+                if (!expense.getUser().getId().equals(userId)) {
+                        throw new RuntimeException("You are not authorized to delete this expense");
+                }
+
+                expenseRepository.delete(expense);
+        }
+
     public List<ExpenseResponse> getExpensesByUserId(Long id) {
         List<Expense> expenseList = expenseRepository.findByUserId(id);
         return expenseList.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+
+        public List<ExpenseResponse> getExpensesByDateRange(Long userId, String startDate, String endDate) {
+                userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                try {
+                        LocalDate parsedStartDate = LocalDate.parse(startDate);
+                        LocalDate parsedEndDate = LocalDate.parse(endDate);
+
+                        if (parsedStartDate.isAfter(parsedEndDate)) {
+                                throw new IllegalArgumentException("startDate cannot be after endDate");
+                        }
+
+                        LocalDateTime startDateTime = parsedStartDate.atStartOfDay();
+                        LocalDateTime endDateTime = parsedEndDate.atTime(23, 59, 59, 999_999_999);
+
+                        return expenseRepository.findByUserIdAndDateBetween(userId, startDateTime, endDateTime)
+                                        .stream()
+                                        .map(this::mapToResponse)
+                                        .collect(Collectors.toList());
+                } catch (DateTimeParseException ex) {
+                        throw new IllegalArgumentException("Invalid date format. Use yyyy-MM-dd");
+                }
+        }
 
 
     public MonthlyReportResponse getMonthlyExpense(Long userId, int month, int year) {
