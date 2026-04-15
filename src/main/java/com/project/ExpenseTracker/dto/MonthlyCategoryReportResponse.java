@@ -7,9 +7,10 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class MonthlyReportResponse {
+public class MonthlyCategoryReportResponse {
 
     private Long userId;
+    private String category;
     private int month;
     private int year;
     private double totalAmount;

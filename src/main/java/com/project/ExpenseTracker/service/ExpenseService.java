@@ -2,6 +2,7 @@ package com.project.ExpenseTracker.service;
 
 import com.project.ExpenseTracker.dto.ExpenseRequest;
 import com.project.ExpenseTracker.dto.ExpenseResponse;
+import com.project.ExpenseTracker.dto.MonthlyCategoryReportResponse;
 import com.project.ExpenseTracker.dto.MonthlyReportResponse;
 import com.project.ExpenseTracker.model.Expense;
 import com.project.ExpenseTracker.model.User;
@@ -67,13 +68,13 @@ public class ExpenseService {
         return new MonthlyReportResponse(userId, month, year, total);
     }
 
-    public MonthlyReportResponse getMonthlyExpenseByCategory(Long userId, String category, int month, int year) {
-                userRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("User not found"));
+    public MonthlyCategoryReportResponse getMonthlyExpenseByCategory(Long userId, String category, int month, int year) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-                if (category == null || category.isBlank()) {
-                        throw new IllegalArgumentException("Category is required");
-                }
+        if (category == null || category.isBlank()) {
+            throw new IllegalArgumentException("Category is required");
+        }
 
         List<Expense> expenseList = expenseRepository.findByUserId(userId);
 
@@ -87,6 +88,6 @@ public class ExpenseService {
                 .mapToDouble(Expense::getAmount)
                 .sum();
 
-        return new MonthlyReportResponse(userId, month, year, total,category);
+        return new MonthlyCategoryReportResponse(userId, category, month, year, total);
     }
 }
