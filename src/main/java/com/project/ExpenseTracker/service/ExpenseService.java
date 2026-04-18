@@ -23,8 +23,13 @@ public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final UserRepository userRepository;
 
-    public ExpenseResponse generateExpense(ExpenseRequest request) {
-        User user=userRepository.findById(request.getUserId()).orElseThrow(()->new RuntimeException("Invalid user id"+request.getUserId()));
+        private User validateUser(Long userId) {
+                return userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+        }
+
+    public ExpenseResponse generateExpense(Long authenticatedUserId, ExpenseRequest request) {
+                User user = validateUser(authenticatedUserId);
         Expense expense=Expense.builder()
                 .user(user)
                 .amount(request.getAmount())
@@ -45,8 +50,7 @@ public class ExpenseService {
     }
 
         public ExpenseResponse updateExpense(Long expenseId, Long userId, ExpenseRequest request) {
-                userRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("Invalid user id " + userId));
+                validateUser(userId);
 
                 Expense expense = expenseRepository.findById(expenseId)
                                 .orElseThrow(() -> new RuntimeException("Expense not found with id " + expenseId));
@@ -63,8 +67,7 @@ public class ExpenseService {
         }
 
         public void deleteExpense(Long expenseId, Long userId) {
-                userRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("Invalid user id " + userId));
+                validateUser(userId);
 
                 Expense expense = expenseRepository.findById(expenseId)
                                 .orElseThrow(() -> new RuntimeException("Expense not found with id " + expenseId));
@@ -77,6 +80,7 @@ public class ExpenseService {
         }
 
     public List<ExpenseResponse> getExpensesByUserId(Long id) {
+        validateUser(id);
         List<Expense> expenseList = expenseRepository.findByUserId(id);
         return expenseList.stream()
                 .map(this::mapToResponse)
@@ -84,8 +88,7 @@ public class ExpenseService {
     }
 
         public List<ExpenseResponse> getExpensesByDateRange(Long userId, String startDate, String endDate) {
-                userRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("User not found"));
+                validateUser(userId);
 
                 try {
                         LocalDate parsedStartDate = LocalDate.parse(startDate);
@@ -109,8 +112,7 @@ public class ExpenseService {
 
 
     public MonthlyReportResponse getMonthlyExpense(Long userId, int month, int year) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                validateUser(userId);
 
 
         List<Expense> expenseList = expenseRepository.findByUserId(userId);
@@ -128,8 +130,7 @@ public class ExpenseService {
     }
 
     public MonthlyCategoryReportResponse getMonthlyExpenseByCategory(Long userId, String category, int month, int year) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                validateUser(userId);
 
         if (category == null || category.isBlank()) {
             throw new IllegalArgumentException("Category is required");

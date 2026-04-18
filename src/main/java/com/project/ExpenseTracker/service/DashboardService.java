@@ -8,7 +8,10 @@ import com.project.ExpenseTracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,7 +27,12 @@ public class DashboardService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<Expense> expenseList = expenseRepository.findByUserId(userId);
+        YearMonth currentMonth = YearMonth.now();
+        LocalDateTime monthStart = currentMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        List<Expense> expenseList = expenseRepository.findByUserIdAndDateBetween(userId, monthStart, monthEnd);
+        List<Expense> allExpenseList = expenseRepository.findByUserId(userId);
 
         double totalSpent = expenseList.stream()
                 .mapToDouble(Expense::getAmount)
@@ -41,17 +49,48 @@ public class DashboardService {
                 .map(entry -> entry.getKey().name())
                 .orElse("N/A");
 
-        Map<LocalDate, Double> dailyTotals = expenseList.stream()
+        double averageDailyExpense = 0.0;
+        long totalSpendingDays = expenseList.stream()
+                .map(expense -> expense.getDate().toLocalDate())
+                .distinct()
+                .count();
+
+        if (totalSpendingDays > 0) {
+            double rawAverage = totalSpent / totalSpendingDays;
+            averageDailyExpense = BigDecimal.valueOf(rawAverage)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+        }
+
+        Map<Category, Double> categoryMapTotal = allExpenseList.stream()
                 .collect(Collectors.groupingBy(
-                        expense -> expense.getDate().toLocalDate(),
-                        Collectors.summingDouble(Expense::getAmount)
+                        Expense::getCategory,
+                        Collectors.collectingAndThen(
+                                Collectors.summingDouble(Expense::getAmount),
+                                total -> BigDecimal.valueOf(total)
+                                        .setScale(2, RoundingMode.HALF_UP)
+                                        .doubleValue()
+                        )
                 ));
 
-        double averageDailyExpense = dailyTotals.values().stream()
-                .mapToDouble(Double::doubleValue)
-                .average()
-                .orElse(0.0);
+        Map<Category, Double> currentMonthCategoryMapTotal = expenseList.stream()
+                .collect(Collectors.groupingBy(
+                        Expense::getCategory,
+                        Collectors.collectingAndThen(
+                                Collectors.summingDouble(Expense::getAmount),
+                                total -> BigDecimal.valueOf(total)
+                                        .setScale(2, RoundingMode.HALF_UP)
+                                        .doubleValue()
+                        )
+                ));
 
-        return new DashboardResponse(userId, totalSpent, highestCategory, averageDailyExpense);
+        return new DashboardResponse(
+                userId,
+                totalSpent,
+                highestCategory,
+                averageDailyExpense,
+                categoryMapTotal,
+                currentMonthCategoryMapTotal
+        );
     }
 }
