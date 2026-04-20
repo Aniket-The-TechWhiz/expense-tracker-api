@@ -11,6 +11,12 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
+@Table(
+    indexes = {
+        @Index(name = "idx_expense_user_date", columnList = "user_id,date"),
+        @Index(name = "idx_expense_user_category_date", columnList = "user_id,category,date")
+    }
+)
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder

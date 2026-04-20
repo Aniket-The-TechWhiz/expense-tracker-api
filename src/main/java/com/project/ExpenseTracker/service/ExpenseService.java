@@ -4,6 +4,7 @@ import com.project.ExpenseTracker.dto.ExpenseRequest;
 import com.project.ExpenseTracker.dto.ExpenseResponse;
 import com.project.ExpenseTracker.dto.MonthlyCategoryReportResponse;
 import com.project.ExpenseTracker.dto.MonthlyReportResponse;
+import com.project.ExpenseTracker.model.Category;
 import com.project.ExpenseTracker.model.Expense;
 import com.project.ExpenseTracker.model.User;
 import com.project.ExpenseTracker.repository.ExpenseRepository;
@@ -114,17 +115,10 @@ public class ExpenseService {
     public MonthlyReportResponse getMonthlyExpense(Long userId, int month, int year) {
                 validateUser(userId);
 
+        LocalDateTime monthStart = LocalDate.of(year, month, 1).atStartOfDay();
+        LocalDateTime monthEnd = monthStart.plusMonths(1).minusNanos(1);
 
-        List<Expense> expenseList = expenseRepository.findByUserId(userId);
-
-
-        double total = expenseList.stream()
-                .filter(expense ->
-                        expense.getDate().getMonthValue() == month &&
-                                expense.getDate().getYear() == year
-                )
-                .mapToDouble(Expense::getAmount)
-                .sum();
+        double total = expenseRepository.sumAmountByUserIdAndDateBetween(userId, monthStart, monthEnd);
 
         return new MonthlyReportResponse(userId, month, year, total);
     }
@@ -136,17 +130,22 @@ public class ExpenseService {
             throw new IllegalArgumentException("Category is required");
         }
 
-        List<Expense> expenseList = expenseRepository.findByUserId(userId);
+                Category parsedCategory;
+                try {
+                        parsedCategory = Category.valueOf(category.trim().toUpperCase());
+                } catch (IllegalArgumentException ex) {
+                        throw new IllegalArgumentException("Invalid category: " + category);
+                }
 
+                LocalDateTime monthStart = LocalDate.of(year, month, 1).atStartOfDay();
+                LocalDateTime monthEnd = monthStart.plusMonths(1).minusNanos(1);
 
-        double total = expenseList.stream()
-                .filter(expense ->
-                        expense.getDate().getMonthValue() == month &&
-                                expense.getDate().getYear() == year &&
-                                expense.getCategory().name().equalsIgnoreCase(category)
-                )
-                .mapToDouble(Expense::getAmount)
-                .sum();
+                double total = expenseRepository.sumAmountByUserIdAndCategoryAndDateBetween(
+                                userId,
+                                parsedCategory,
+                                monthStart,
+                                monthEnd
+                );
 
         return new MonthlyCategoryReportResponse(userId, category, month, year, total);
     }
